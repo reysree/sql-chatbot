@@ -16,7 +16,6 @@ export default function ChatMessages(props) {
           <ListItemText
             primary={
               <Typography
-                component="div"
                 sx={{
                   maxWidth: "80%",
                   p: 1,
@@ -35,7 +34,6 @@ export default function ChatMessages(props) {
                   : message.content}
               </Typography>
             }
-            // If the content is a data array, render it in a table
             secondary={
               message.content?.columns &&
               message.content?.data && (

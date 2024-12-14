@@ -164,7 +164,18 @@ export async function POST(req) {
       },
     ];
 
-    const messages = [{ role: "system", content: systemPrompt }, ...userInput];
+    const stringifiedUserInput = userInput.map((message) => {
+      if (typeof message.content === "object") {
+        // Stringify the content if it's an object
+        return { ...message, content: JSON.stringify(message.content) };
+      }
+      return message;
+    });
+
+    const messages = [
+      { role: "system", content: systemPrompt },
+      ...stringifiedUserInput,
+    ];
 
     // Call the OpenAI API with the system prompt
     const response = await openai.chat.completions.create({
