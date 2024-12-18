@@ -95,6 +95,37 @@ function formatResponse(rawData) {
   return { columns, data };
 }
 
+async function resolveLimitSubquery(connection, query) {
+  // Match for problematic subqueries using LIMIT with IN/ANY/ALL/SOME
+  const subqueryRegex = /IN\s*\(\s*(SELECT[^)]+LIMIT\s+\d+)\s*\)/i;
+  const match = query.match(subqueryRegex);
+
+  if (match) {
+    const problematicSubquery = match[1]; // Extract the subquery with LIMIT
+    console.log("Executing Subquery with LIMIT:", problematicSubquery);
+
+    // Execute the subquery separately
+    const [subResult] = await connection.execute(problematicSubquery);
+    if (subResult.length === 0) {
+      throw new Error("Subquery returned no results.");
+    }
+
+    // Extract values from the subquery result
+    const resolvedValues = subResult.map((row) => `'${Object.values(row)[0]}'`).join(", ");
+    console.log("Resolved Values for IN Clause:", resolvedValues);
+
+    // Replace the original subquery with the resolved values
+    const updatedQuery = query.replace(subqueryRegex, `IN (${resolvedValues})`);
+    console.log("Updated Query After Resolving Subquery:", updatedQuery);
+
+    return updatedQuery;
+  }
+
+  // Return the original query if no matching subquery is found
+  return query;
+}
+
+
 export async function POST(req) {
   let connection;
   try {
@@ -203,7 +234,7 @@ export async function POST(req) {
       - Categorical columns should retain string values (e.g., "Paid", "Pending").
 
     
-    4. Only Return the updated normalized data in the following JSON formats:
+    4. Only Return the updated normalized data in the following JSON formats. Do not give any other information other than the data.:
        {
          "columns": ["Column1", "Column2", ...],
          "data": [[Value1, Value2, ...], ...]
@@ -284,10 +315,12 @@ export async function POST(req) {
       messages: final_messages,
     });
 
-    const refinedQuery = thirdResponse.choices[0]?.message.content
+    let refinedQuery = thirdResponse.choices[0]?.message.content
       .replace(/```sql\s*|\s*```/g, "")
       .trim();
     console.log("Refined Query:", refinedQuery);
+
+    refinedQuery = await resolveLimitSubquery(connection, refinedQuery);
 
     const [finalResult] = await connection.execute(refinedQuery);
     console.log("Final Result:", finalResult);

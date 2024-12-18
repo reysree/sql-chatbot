@@ -74,7 +74,22 @@ export default function ChatInterface() {
         justifyContent: "space-between",
       }}
     >
-      <div style={{ flexGrow: 1, overflowY: "auto" }}>
+      <div style={{ flexGrow: 1, overflowY: "auto", position: "relative" }}>
+        {isLoading && (
+          <div style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 1,
+            backgroundColor: "rgba(255, 255, 255, 0.8)",
+            padding: "10px",
+            borderRadius: "5px",
+            boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)"
+          }}>
+            <span>Loading...</span>
+          </div>
+        )}
         <ChatMessages messages={messages} />
         <div ref={messagesEndRef} />
       </div>
