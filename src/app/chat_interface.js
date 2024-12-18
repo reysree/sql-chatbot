@@ -1,15 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import ChatMessages from "./chat-messages";
 import { TextField, Button } from "@mui/material";
 import { Send } from "@mui/icons-material";
 
 export default function ChatInterface() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => []);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      console.log("Client-side rendering active");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -29,7 +41,7 @@ export default function ChatInterface() {
     try {
       console.log("Messages before sending request:", messages);
 
-      const response = await fetch("/api/openai", {
+      const response = await fetch("/api/invoice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userInput: [...messages, userMessage] }),
@@ -41,7 +53,6 @@ export default function ChatInterface() {
 
       const data = await response.json();
       console.log("Received Data:", data);
-
       // Append the assistant's response to the messages
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -55,34 +66,37 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-card rounded-lg shadow-lg overflow-hidden">
-      <div className="p-4 border-b flex items-center gap-2">
-        <MessageCircle className="w-5 h-5" />
-        <span className="font-medium">Chat</span>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "92vh",
+        justifyContent: "space-between",
+      }}
+    >
+      <div style={{ flexGrow: 1, overflowY: "auto" }}>
+        <ChatMessages messages={messages} />
+        <div ref={messagesEndRef} />
       </div>
-      <ChatMessages messages={messages} />
-      <form onSubmit={handleSubmit} className="p-4 border-t">
-        <div className="flex gap-2">
-          <TextField
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type your message..."
-            className="min-h-[60px]"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e);
-              }
-            }}
-          />
-          <Button type="submit" size="icon" disabled={isLoading}>
-            {isLoading ? (
-              <span className="loader">...</span>
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", padding: "10px" }}
+      >
+        <TextField
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Type your message..."
+          style={{ flex: 1 }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit(e);
+            }
+          }}
+        />
+        <Button type="submit" size="icon" disabled={isLoading}>
+          {isLoading ? <span className="loader">...</span> : <Send />}
+        </Button>
       </form>
     </div>
   );

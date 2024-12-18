@@ -23,7 +23,7 @@ export default function DataTable({ columns, data }) {
   }
 
   return (
-    <TableContainer component={Paper} className="w-full mt-2 rounded-md">
+    <TableContainer component={Paper}>
       <Table>
         <TableHead>
           <TableRow>

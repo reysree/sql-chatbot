@@ -9,13 +9,18 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@emotion/react": "^11.13.5",
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/server": "^11.11.0",
     "@emotion/styled": "^11.13.5",
     "@mui/material": "^6.1.9",
+    "alasql": "^4.6.0",
     "mysql2": "^3.11.5",
     "next": "15.0.3",
     "openai": "^4.75.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "sql.js": "^1.12.0",
+    "words-to-numbers": "^1.5.1"
   }
 }

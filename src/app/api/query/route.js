@@ -2,20 +2,26 @@ import pool from "@/utils/db";
 
 export async function POST(req) {
   try {
-    const body = await req.json(); // Get the SQL query from the request body
-    console.log("Request Body : ", body);
-    const { query } = body;
+    const body = await req.json();
+    const { query, values } = body;
+
     if (!query) {
       return new Response(JSON.stringify({ error: "No query provided." }), {
         status: 400,
       });
     }
 
-    // Execute the query
-    console.log("the query sent to db route is : ", req);
-    const [rows] = await pool.execute(query);
+    let rows;
+    if (values && Array.isArray(values)) {
+      // Execute with parameterized values
+      console.log("Executing query with values:", query, values);
+      [rows] = await pool.execute(query, values);
+    } else {
+      // Execute query without values
+      console.log("Executing query:", query);
+      [rows] = await pool.execute(query);
+    }
 
-    // Return the query results
     return new Response(JSON.stringify({ data: rows }), { status: 200 });
   } catch (error) {
     console.error("Database query failed:", error);

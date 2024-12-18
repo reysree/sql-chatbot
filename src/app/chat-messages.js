@@ -17,7 +17,7 @@ export default function ChatMessages(props) {
             primary={
               <Typography
                 sx={{
-                  maxWidth: "80%",
+                  maxWidth: "100%",
                   p: 1,
                   borderRadius: 1,
                   bgcolor:
@@ -31,16 +31,19 @@ export default function ChatMessages(props) {
               >
                 {message.content?.columns
                   ? "Here is the table data:"
-                  : message.content}
+                  : message.content || ""}
               </Typography>
             }
             secondary={
-              message.content?.columns &&
-              message.content?.data && (
-                <DataTable
-                  columns={message.content.columns}
-                  data={message.content.data}
-                />
+              message.content?.columns && message.content?.data ? (
+                <div>
+                  <DataTable
+                    columns={message.content.columns}
+                    data={message.content.data}
+                  />
+                </div>
+              ) : (
+                <div /> // Render an empty div for consistent structure
               )
             }
           />
