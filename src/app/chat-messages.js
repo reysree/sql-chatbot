@@ -29,7 +29,7 @@ export default function ChatMessages(props) {
                   whiteSpace: "pre-wrap",
                 }}
               >
-                {message.content?.columns
+                {message.content?.columns 
                   ? "Here is the table data:"
                   : message.content || ""}
               </Typography>

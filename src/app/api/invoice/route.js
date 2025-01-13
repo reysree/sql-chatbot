@@ -111,7 +111,9 @@ async function resolveLimitSubquery(connection, query) {
     }
 
     // Extract values from the subquery result
-    const resolvedValues = subResult.map((row) => `'${Object.values(row)[0]}'`).join(", ");
+    const resolvedValues = subResult
+      .map((row) => `'${Object.values(row)[0]}'`)
+      .join(", ");
     console.log("Resolved Values for IN Clause:", resolvedValues);
 
     // Replace the original subquery with the resolved values
@@ -124,7 +126,6 @@ async function resolveLimitSubquery(connection, query) {
   // Return the original query if no matching subquery is found
   return query;
 }
-
 
 export async function POST(req) {
   let connection;
@@ -201,7 +202,10 @@ export async function POST(req) {
     let query = firstResponse.replace(/```sql\s*|\s*```/g, "").trim();
     console.log("The query generated is :", query);
 
-    connection = await pool.getConnection();
+    if (!connection) {
+      connection = await pool.getConnection();
+      console.log("Persistent database connection established.");
+    }
 
     // Execute initial query to fetch raw data
     const [dbData] = await connection.execute(query);
@@ -222,6 +226,7 @@ export async function POST(req) {
     2. Normalize values where possible:
        - Always attempt normalization instead of excluding rows.
        - Only exclude rows if normalization is completely impossible after multiple attempts.
+       - if the data contains anything related to passowords, remove it and its corresponding column and data.
     
     3. Cast data to the appropriate types:
       - For numeric columns like AmountPaid:
@@ -233,8 +238,10 @@ export async function POST(req) {
         - Convert text-based dates to the "YYYY-MM-DD" format.
       - Categorical columns should retain string values (e.g., "Paid", "Pending").
 
+    4. If the data does not require normalization, respond with the same data as before.
+
     
-    4. Only Return the updated normalized data in the following JSON formats. Do not give any other information other than the data.:
+    5. Only Return the updated normalized data in the following JSON formats. Do not give any other information other than the data.:
        {
          "columns": ["Column1", "Column2", ...],
          "data": [[Value1, Value2, ...], ...]
@@ -276,6 +283,8 @@ export async function POST(req) {
     const { columns, data } = formattedResponse;
     const tableName = "TempNormalizedData";
     console.log("The data in Formatted response is : ", data);
+
+    await connection.execute(`DROP TEMPORARY TABLE IF EXISTS ${tableName};`);
 
     const createTableSQL = `
       CREATE TEMPORARY TABLE ${tableName} (
