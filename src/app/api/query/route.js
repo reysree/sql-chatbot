@@ -3,7 +3,10 @@ import pool from "@/utils/db";
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { query, values } = body;
+    const { query, values = [] } = body;
+    console.log("The body is : ", body);
+    console.log("The query is : ", query);
+    console.log("The values are : ", values);
 
     if (!query) {
       return new Response(JSON.stringify({ error: "No query provided." }), {

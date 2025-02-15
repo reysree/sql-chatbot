@@ -24,6 +24,20 @@ const systemprompt = `You are a helpful AI assistant that performs two main task
         - dept_id INT PRIMARY KEY,
         - dept_name VARCHAR(100) NOT NULL.
 
+     ### **Important:**
+   - **ALWAYS use parameterized queries**. DO NOT insert user values directly into SQL strings.
+   - **Return the output in a structured JSON format** with:
+     - **query** → The SQL statement with '?' as placeholders.
+     - **values** → An array of actual values to be used in place of the placeholders.
+     
+   ### **Example Format**:
+   \`\`\`json
+   {
+     "query": "SELECT * FROM Employee WHERE name = ?",
+     "values": ["John Doe"]
+   }
+   \`\`\`      
+
    Given the above context about the tables in the database, if a user's question requires accessing database information, ALWAYS use the query tool to generate the appropriate SQL query.
 
    ### Important:
@@ -69,56 +83,12 @@ export async function POST(req) {
   try {
     // Parse user input from the request body
     const { userInput } = await req.json();
-    console.log("Everytime the userInput is received : ", userInput);
-
-    // console.log(
-    //   "Validating userInput:",
-    //   userInput.map((msg) => ({
-    //     role: msg.role,
-    //     contentType: typeof msg.content,
-    //     content: msg.content,
-    //   }))
-    // );
-    console.log(!userInput);
-    console.log(!Array.isArray(userInput));
-    console.log(userInput.some((msg) => !msg.content));
-    console.log(
-      userInput.some(
-        (msg) => typeof msg.content === "string" && msg.content.trim() === ""
-      )
-    );
-    console.log(
-      userInput.some(
-        (msg) =>
-          typeof msg.content === "object" &&
-          (!msg.content.columns || !msg.content.data)
-      )
-    );
-
-    // if (
-    //   !userInput ||
-    //   !Array.isArray(userInput) ||
-    //   userInput.some(
-    //     (msg) =>
-    //       !msg.content || // Checks if content exists
-    //       (typeof msg.content === "string" && msg.content.trim() === "") || // Handles empty strings
-    //       (typeof msg.content === "object" &&
-    //         (!msg.content.columns || !msg.content.data)) // Validates object structure
-    //   )
-    // ) {
-    //   return new Response(JSON.stringify({ error: "User input is required" }), {
-    //     status: 400,
-    //   });
-    // }
+    //console.log("Everytime the userInput is received : ", userInput);
 
     if (
       !userInput ||
       !Array.isArray(userInput) ||
       !userInput.every((msg) => {
-        if (msg.role === "assistant" && msg.content === "") {
-          // Allow empty content for assistant placeholders
-          return true;
-        }
         if (typeof msg.content === "string") {
           return msg.content.trim() !== ""; // Ensure non-empty strings
         }
@@ -148,120 +118,70 @@ export async function POST(req) {
       userQuestion.content
     );
 
-    const tools = [
-      {
-        type: "function",
-        function: {
-          name: "query_database",
-          parameters: {
-            type: "object",
-            properties: {
-              query: { type: "string" }, // SQL query to execute
-            },
-            required: ["query"],
-          },
-        },
-      },
-    ];
-
-    const stringifiedUserInput = userInput.map((message) => {
-      if (typeof message.content === "object") {
-        // Stringify the content if it's an object
-        return { ...message, content: JSON.stringify(message.content) };
-      }
-      return message;
-    });
-
-    const messages = [
-      { role: "system", content: systemPrompt },
-      ...stringifiedUserInput,
-    ];
+    const messages = [{ role: "system", content: systemPrompt }];
 
     // Call the OpenAI API with the system prompt
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: messages,
-      tools,
     });
 
-    console.log(
-      "The query returned by the AI : ",
-      response.choices[0].message.content
+    const raw_query = response.choices[0]?.message.content;
+    let sqlQueryObject;
+    try {
+      const cleanedResponse = raw_query.replace(/```json|```/g, "").trim(); // Remove Markdown code formatting
+      sqlQueryObject = JSON.parse(cleanedResponse);
+    } catch (error) {
+      console.error("Error parsing OpenAI SQL response:", error);
+      throw new Error("Invalid JSON format in OpenAI response.");
+    }
+
+    const { query, values } = sqlQueryObject;
+
+    const dbResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/query`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, values }),
+      }
     );
 
-    // Extract the generated SQL query from the response
-    const sqlQuery = response.choices[0]?.message.content;
-    console.log("Tool Calls : ", response);
-    if (response.choices[0].message.tool_calls) {
-      const toolCall = response.choices[0].message.tool_calls[0];
-      console.log(
-        "Available tool calls are : ",
-        response.choices[0].message.tool_calls[0]
-      );
-      if (toolCall.function.name === "query_database") {
-        // Execute the query in your backend or database API
-        console.log("Entered query_databass and toolCall is : ", toolCall);
-
-        let query;
-        try {
-          const args = JSON.parse(toolCall.function.arguments);
-          query = args.query;
-        } catch (error) {
-          console.error("Failed to parse toolCall arguments:", error);
-          return;
-        }
-        if (!query) {
-          console.error("Query not found in toolCall arguments.");
-          return;
-        }
-        console.log("SQL Query:", query);
-
-        const dbResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL}/api/query`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query }),
-          }
-        );
-
-        if (!dbResponse.ok) {
-          console.error("Database query failed.");
-          return;
-        }
-        const dbData = await dbResponse.json();
-
-        messages.push({
-          role: "assistant",
-          content: `Here is the data returned from the database: ${JSON.stringify(
-            dbData
-          )}`,
-        });
-
-        const secondResponse = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: messages,
-        });
-
-        // Extract the content from the response
-        const rawContent = secondResponse.choices[0]?.message.content;
-
-        console.log("Raw Content from Second Response:", rawContent);
-
-        // Clean the content to extract valid JSON
-        let formattedResponse;
-        try {
-          const jsonContent = rawContent.replace(/```json|```/g, "").trim(); // Remove markdown formatting
-          formattedResponse = JSON.parse(jsonContent); // Parse the cleaned JSON
-        } catch (error) {
-          console.error("Failed to parse formatted response as JSON:", error);
-          throw new Error("Invalid JSON format in OpenAI response.");
-        }
-
-        console.log("Formatted Data for UI:", formattedResponse);
-        return new Response(JSON.stringify(formattedResponse), { status: 200 });
-      }
+    if (!dbResponse.ok) {
+      console.error("Database query failed.");
+      return;
     }
+    const dbData = await dbResponse.json();
+
+    messages.push({
+      role: "assistant",
+      content: `Here is the data returned from the database: ${JSON.stringify(
+        dbData
+      )}`,
+    });
+
+    const secondResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: messages,
+    });
+
+    // Extract the content from the response
+    const rawContent = secondResponse.choices[0]?.message.content;
+
+    console.log("Raw Content from Second Response:", rawContent);
+
+    // Clean the content to extract valid JSON
+    let formattedResponse;
+    try {
+      const jsonContent = rawContent.replace(/```json|```/g, "").trim(); // Remove markdown formatting
+      formattedResponse = JSON.parse(jsonContent); // Parse the cleaned JSON
+    } catch (error) {
+      console.error("Failed to parse formatted response as JSON:", error);
+      throw new Error("Invalid JSON format in OpenAI response.");
+    }
+
+    console.log("Formatted Data for UI:", formattedResponse);
+    return new Response(JSON.stringify(formattedResponse), { status: 200 });
   } catch (error) {
     console.error("Error with OpenAI API:", error);
     return new Response(
