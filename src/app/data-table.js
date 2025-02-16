@@ -1,49 +1,43 @@
-"use client";
-
 import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  Typography,
-} from "@mui/material";
+} from "@/components/ui/table";
 
 export default function DataTable({ columns, data }) {
-  console.log("Received data for table:", { columns, data });
-
-  if (!columns || !data || data.length === 0) {
-    return (
-      <Typography variant="body1" color="textSecondary" align="center">
-        No data available to display.
-      </Typography>
-    );
-  }
-
   return (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
+    <div className="w-full overflow-x-auto">
+      <Table className="border border-gray-400">
+        <TableHeader>
+          <TableRow className="border-b-2 border-gray-400">
             {columns.map((column) => (
-              <TableCell key={column} style={{ fontWeight: "bold" }}>
+              <TableHead
+                key={column}
+                className="font-bold text-black border-r-2 border-gray-400 p-2"
+              >
                 {column}
-              </TableCell>
+              </TableHead>
             ))}
           </TableRow>
-        </TableHead>
+        </TableHeader>
         <TableBody>
           {data.map((row, rowIndex) => (
-            <TableRow key={rowIndex}>
+            <TableRow key={rowIndex} className="border-b-2 border-gray-400">
               {row.map((value, colIndex) => (
-                <TableCell key={`${rowIndex}-${colIndex}`}>{value}</TableCell>
+                <TableCell
+                  key={`${rowIndex}-${colIndex}`}
+                  className="border-r-2 border-gray-400 p-2"
+                >
+                  {value}
+                </TableCell>
               ))}
             </TableRow>
           ))}
         </TableBody>
       </Table>
-    </TableContainer>
+    </div>
   );
 }
