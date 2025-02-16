@@ -59,6 +59,7 @@ export default function ChatInterface() {
         ...prevMessages,
         { role: "assistant", content: data }, // Add the formatted response
       ]);
+      console.log("The messages in the array are : ", messages);
     } catch (error) {
       console.error("Error during POST request:", error);
     } finally {

@@ -7,48 +7,35 @@ export default function ChatMessages(props) {
   const { messages } = props;
 
   return (
-    <List sx={{ flexGrow: 1, overflowY: "auto", p: 2 }}>
+    <div className="flex-grow overflow-y-auto p-4 space-y-4">
       {messages.map((message, index) => (
-        <ListItem
-          key={index}
-          alignItems={message.role === "user" ? "flex-end" : "flex-start"}
-        >
-          <ListItemText
-            primary={
-              <Typography
-                sx={{
-                  maxWidth: "100%",
-                  p: 1,
-                  borderRadius: 1,
-                  bgcolor:
-                    message.role === "user" ? "primary.main" : "grey.200",
-                  color:
-                    message.role === "user"
-                      ? "primary.contrastText"
-                      : "text.primary",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                {message.content?.columns
-                  ? "Here is the table data:"
-                  : message.content}
-              </Typography>
-            }
-            secondary={
-              message.content?.columns && message.content?.data ? (
-                <div>
-                  <DataTable
-                    columns={message.content.columns}
-                    data={message.content.data}
-                  />
-                </div>
-              ) : (
-                <div /> // Render an empty div for consistent structure
-              )
-            }
-          />
-        </ListItem>
+        <div key={index}>
+          <div
+            className={`max-w p-3 rounded-lg ${
+              message.role === "user"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-black"
+            }`}
+          >
+            {/* Display table message or text content */}
+            {message.content?.columns ? (
+              <p className="mb-2 font-semibold">Here is the table data:</p>
+            ) : (
+              <p className="whitespace-pre-wrap">{message.content}</p>
+            )}
+
+            {/* Render DataTable if applicable */}
+            {message.content?.columns && message.content?.data && (
+              <div className="mt-2 w-full">
+                <DataTable
+                  columns={message.content.columns}
+                  data={message.content.data}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       ))}
-    </List>
+    </div>
   );
 }
