@@ -53,12 +53,19 @@ export default function ChatInterface() {
       }
 
       const data = await response.json();
-      //console.log("Received Data:", data);
-      // Append the assistant's response to the messages
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { role: "assistant", content: data }, // Add the formatted response
-      ]);
+      console.log("Received Data:", data);
+      if (data.error) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { role: "user", content: data.error }, // Add the formatted response
+        ]);
+      } else {
+        // Append the assistant's response to the messages
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { role: "assistant", content: data }, // Add the formatted response
+        ]);
+      }
       console.log("The messages in the array are : ", messages);
     } catch (error) {
       console.error("Error during POST request:", error);

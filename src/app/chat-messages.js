@@ -1,6 +1,5 @@
 "use client";
 
-import { List, ListItem, ListItemText, Typography } from "@mui/material";
 import DataTable from "./data-table";
 
 export default function ChatMessages(props) {

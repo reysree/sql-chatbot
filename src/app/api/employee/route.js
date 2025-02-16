@@ -38,10 +38,16 @@ const systemprompt = `You are a helpful AI assistant that performs two main task
    }
    \`\`\`      
 
-   Given the above context about the tables in the database, if a user's question requires accessing database information, ALWAYS use the query tool to generate the appropriate SQL query.
+   Given the above context about the tables in the database, if a user's question requires accessing database information please access it.
+   
+   Note :
+   If for the given user question you are unable to generate the query or if anything unrelated to the database is asked give the below output:
+      \`\`\`json
+   {
+      "errormessage": "Please ask me anything related to the selected database"
+   }
+   \`\`\`   
 
-   ### Important:
-   ONLY use the query tool to generate SQL queries. Do not attempt to answer questions directly without using the tool.
 
 2. **Database Response Processing**:
    When provided with a JSON-formatted response from a database query, your task is to interpret the data and structure it into a JSON object suitable for easily displaying as a table in a user interface.
@@ -134,6 +140,15 @@ export async function POST(req) {
     } catch (error) {
       console.error("Error parsing OpenAI SQL response:", error);
       throw new Error("Invalid JSON format in OpenAI response.");
+    }
+    console.log("The data in the sqlQueryObject now is : ", sqlQueryObject);
+    if (sqlQueryObject.errormessage) {
+      console.log("Error from OpenAI:", sqlQueryObject.errormessage);
+
+      return new Response(
+        JSON.stringify({ error: sqlQueryObject.errormessage }),
+        { status: 200 }
+      );
     }
 
     const { query, values } = sqlQueryObject;
