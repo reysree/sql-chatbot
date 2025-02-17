@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client/ai"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL_AI")
+}
+
+model address {
+  address_id   Int                   @id @default(autoincrement())
+  eid          Int
+  street       String?               @db.VarChar(255)
+  city         String?               @db.VarChar(100)
+  state        String?               @db.VarChar(100)
+  postal_code  String?               @db.VarChar(20)
+  country      String?               @db.VarChar(100)
+  address_type address_address_type?
+  employee     employee              @relation(fields: [eid], references: [eid], onDelete: NoAction, onUpdate: NoAction, map: "address_ibfk_1")
+
+  @@index([eid], map: "eid")
+}
+
+model department {
+  dept_id   Int        @id @default(autoincrement())
+  dept_name String     @db.VarChar(100)
+  employee  employee[]
+}
+
+model employee {
+  eid        Int         @id
+  name       String      @db.VarChar(100)
+  age        Int
+  dept_id    Int?
+  address    address[]
+  department department? @relation(fields: [dept_id], references: [dept_id], onDelete: NoAction, onUpdate: NoAction, map: "employee_ibfk_1")
+
+  @@index([dept_id], map: "dept_id")
+}
+
+enum address_address_type {
+  Home
+  Work
+  Other
+}

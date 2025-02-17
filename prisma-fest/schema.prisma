@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client/fest"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL_FEST")
+}
+
+model payments {
+  payment_id        BigInt    @id @default(autoincrement())
+  user_gid          String    @db.VarChar(255)
+  amount            Decimal   @db.Decimal(38, 2)
+  currency          String?   @default("USD") @db.VarChar(3)
+  payment_status    String    @db.VarChar(255)
+  transaction_id    String?   @db.VarChar(255)
+  payment_date      DateTime? @default(now()) @db.Timestamp(0)
+  card_last_four    String?   @db.VarChar(4)
+  card_type         String?   @db.VarChar(255)
+  card_expiry_month Int?
+  card_expiry_year  Int?
+  students          students  @relation(fields: [user_gid], references: [gid], onDelete: NoAction, onUpdate: NoAction, map: "payments_ibfk_1")
+
+  @@index([user_gid], map: "user_gid")
+}
+
+model students {
+  id         BigInt     @id @default(autoincrement())
+  gid        String     @unique(map: "gid") @db.VarChar(255)
+  first_name String     @db.VarChar(255)
+  last_name  String     @db.VarChar(255)
+  email      String     @unique(map: "email") @db.VarChar(255)
+  password   String     @db.VarChar(255)
+  payments   payments[]
+}
